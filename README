@@ -1,0 +1,18 @@
+It's trace tool for lua.
+
+You can use trace.trace("varname") to trace the code execute. For example, if you run "lua main.lua" , you may got
+
+main.lua        :       12
+main.lua        :       4
+n       local   100
+main.lua        :       7
+main.lua        :       4
+n       local   99
+main.lua        :       7
+main.lua        :       4
+n       local   98
+main.lua        :       7
+main.lua        :       13
+n       global  nil
+s       local   9.3326215443944e+157
+
