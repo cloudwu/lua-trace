@@ -7,10 +7,17 @@ local function factorial(n)
 	return factorial(n-1) * n
 end
 
-function foo()
-	trace.trace("n s",3)
+function foo(n)
+	trace.trace("n s",n)
 	local s =  factorial(100)
 	return s
 end
 
+function hello()
+	print "hello"
+end
+
+foo(3)
+hello()
 foo()
+

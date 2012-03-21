@@ -116,15 +116,13 @@ local function hook(var , level)
 	end
 	local function f (mode, line)
 		if mode == 'return' then
-			if call < 0 then
+			if call <= 0 then
 				debug.sethook()
+				trace.on = nil
 				return
 			end
 			setname(3)
 			call = call - 1
---			if call < level then
---				dump_local(3)
---			end
 			if call == level then
 				debug.sethook(f,'crl')
 			end
@@ -161,6 +159,7 @@ function trace.trace(var , level)
 	if trace.on then
 		return
 	end
+
 	trace.on = true
 	info.last = {}
 	debug.sethook(up(2 , hook(var or  "" , level or 0)) , 'cr')
