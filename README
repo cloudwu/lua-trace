@@ -16,3 +16,5 @@ main.lua        :       13
 n       global  nil
 s       local   9.3326215443944e+157
 
+http://blog.codingnow.com/2012/02/lua_trace.html  (In Chinese)
+
