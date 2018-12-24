@@ -8,8 +8,10 @@ local function factorial(n)
 end
 
 function foo(n)
-	trace.trace("n s",n)
+	trace.trace("n s t.k1.k2",n)
 	local s =  factorial(100)
+	local t = {k1={k2="hello"}}
+	t.k1.k2 = "world"
 	return s
 end
 

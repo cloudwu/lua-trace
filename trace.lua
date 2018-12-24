@@ -8,6 +8,7 @@ local rawget = rawget
 local info = { file = {} }
 
 local trace = {}
+trace.print = print
 
 local function setname(level)
 	info.filename = debug.getinfo(level + 1,"S").short_src
@@ -17,23 +18,69 @@ local function setname(level)
 	info.var = info.file[info.filename]
 end
 
-local function make_local(index)
+local function split(name)
+	local keys = {}
+	for key in name:gmatch("[^.]+") do
+		keys[#keys+1] = key
+	end
+	return keys
+end
+
+local function get_table_field(tbl,keys)
+	for i,key in ipairs(keys) do
+		if tbl[key] then
+			tbl = tbl[key]
+		else
+			return nil
+		end
+	end
+	return tbl
+end
+
+local function is_table_field(var_name,name,v)
+	if type(v) == "table" then
+		local len = #name
+		if var_name:sub(1,len) == name and var_name:sub(len+1,len+1) == "." then
+			return true
+		end
+	end
+	return false
+end
+
+local function make_local(index,name,is_field)
 	return function()
-		local name , value = debug.getlocal(4 , index)
-		return name , "local", value
+		local _ , value = debug.getlocal(4 , index)
+		if not is_field then
+			return name,"local",value
+		else
+			local keys = split(name)
+			table.remove(keys,1)
+			return name,"local",get_table_field(value,keys)
+		end
 	end
 end
 
-local function make_upvalue(func, index)
+local function make_upvalue(func, index,name,is_field)
 	return function()
-		local name , value = debug.getupvalue(func, index)
-		return name , "upvalue", value
+		local _, value = debug.getupvalue(func, index)
+		if not is_field then
+			return name,"upvalue",value
+		else
+			local keys = split(name)
+			table.remove(keys,1)
+			return name,"upvalue",get_table_field(value,keys)
+		end
 	end
 end
 
 local function make_global(env, name)
 	return function()
-		return name , "global" , rawget(env,name)
+		if rawget(env,name) then
+			return name,"global",rawget(env,name)
+		else
+			local keys = split(name)
+			return name,"global",get_table_field(env,keys)
+		end
 	end
 end
 
@@ -42,7 +89,10 @@ local function gen_var(var_name, level)
 	while true do
 		local name,v = debug.getlocal(5,i)
 		if name == var_name then
-			return make_local(i)
+			return make_local(i,var_name)
+		end
+		if is_table_field(var_name,name,v) then
+			return make_local(i,var_name,true)
 		end
 		if name == nil then
 			break
@@ -53,9 +103,11 @@ local function gen_var(var_name, level)
 	local f = debug.getinfo(5, "f").func
 	while true do
 		local name = debug.getupvalue(f,i)
-
 		if name == var_name then
-			return make_upvalue(f,i)
+			return make_upvalue(f,i,var_name)
+		end
+		if is_table_field(var_name,name,v) then
+			return make_upvalue(f,i,var_name,true)
 		end
 		if name == nil then
 			break
@@ -65,20 +117,6 @@ local function gen_var(var_name, level)
 	local name,env = debug.getupvalue(f,1)
 	if name == '_ENV' then
 		return make_global(env, var_name)
-	end
-end
-
-local function dump_local(level)
-	local i = 1
-	while true do
-		local name,v = debug.getlocal(level,i)
-		if name == nil then
-			break
-		end
-		if name == "(*temporary)" then
-			print(name,v)
-		end
-		i=i+1
 	end
 end
 
@@ -94,7 +132,7 @@ local function gen_vars(var, call)
 end
 
 local function hookline(var , call, line)
-	print(info.filename, ":" , line)
+	trace.print(info.filename, ":" , line)
 	if info.var[line] == nil then
 		info.var[line] = gen_vars(var, call)
 	end
@@ -102,7 +140,7 @@ local function hookline(var , call, line)
 	for _,v in ipairs(info.var[line]) do
 		local name , type , value = v()
 		if info.last[name] ~= value then
-			print(name , type, value)
+			trace.print(name , type, value)
 			info.last[name] = value
 		end
 	end
@@ -111,7 +149,7 @@ end
 local function hook(var , level)
 	local call = 0
 	local index = {}
-	for w in string.gmatch(var, "%w+") do
+	for w in string.gmatch(var, "%S+") do
 		table.insert(index,w)
 	end
 	local function f (mode, line)
