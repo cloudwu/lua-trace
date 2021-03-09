@@ -164,12 +164,14 @@ local function hook(var , level)
 			if call == level then
 				debug.sethook(f,'crl')
 			end
-		elseif mode == 'call' or mode == 'tail call' then
+		elseif mode == 'call'  then
 			setname(2)
 			call = call + 1
 			if call > level then
 				debug.sethook(f,'cr')
 			end
+		elseif mode == 'tail call' then 
+			setname(2)
 		elseif mode == 'line' then
 			hookline(index , call, line)
 		end
