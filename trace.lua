@@ -102,7 +102,7 @@ local function gen_var(var_name, level)
 	i = 1
 	local f = debug.getinfo(5, "f").func
 	while true do
-		local name = debug.getupvalue(f,i)
+		local name, v = debug.getupvalue(f,i)
 		if name == var_name then
 			return make_upvalue(f,i,var_name)
 		end
